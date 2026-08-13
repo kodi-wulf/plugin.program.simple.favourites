@@ -1,4 +1,4 @@
-name: Build Kodi addon
+name: Build and validate Kodi addon
 
 on:
   push:
@@ -10,27 +10,63 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
+      - name: Validate addon.xml and Python sources
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+          import xml.etree.ElementTree as ET
+
+          root = Path('.')
+          ET.parse(root / 'addon.xml')
+          required = ['favorites.py', 'promote.py', 'demote.py', 'addon.xml', 'icon.png', 'background.png']
+          for name in required:
+              assert (root / name).is_file(), f'missing required file: {name}'
+          for path in root.rglob('*.py'):
+              if any(part in {'.git', '.github', 'dist', '__pycache__'} for part in path.parts):
+                  continue
+              ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+          print('addon.xml and Python source validation passed')
+          PY
+
       - name: Build addon ZIP
         run: python tools/build_addon_zip.py
+
       - name: Validate ZIP layout
         run: |
           python - <<'PY'
           from pathlib import Path
           import zipfile
+
           zips = list(Path('dist').glob('plugin.program.simple.favourites-*.zip'))
           assert len(zips) == 1, zips
           with zipfile.ZipFile(zips[0]) as z:
               names = set(z.namelist())
-              assert 'plugin.program.simple.favourites/addon.xml' in names
-              assert 'plugin.program.simple.favourites/favorites.py' in names
-              assert 'plugin.program.simple.favourites/contextitem.py' in names
+              required = {
+                  'plugin.program.simple.favourites/addon.xml',
+                  'plugin.program.simple.favourites/favorites.py',
+                  'plugin.program.simple.favourites/promote.py',
+                  'plugin.program.simple.favourites/demote.py',
+                  'plugin.program.simple.favourites/icon.png',
+                  'plugin.program.simple.favourites/background.png',
+              }
+              missing = required - names
+              assert not missing, f'missing from ZIP: {sorted(missing)}'
+              assert not any(name.startswith('plugin.program.simple.favourites/.github/') for name in names)
           print(zips[0])
           PY
-      - name: Create MD5
+
+      - name: Create SHA256 checksum
+        run: sha256sum dist/*.zip | tee dist/addon.sha256
+
+      - name: Create MD5 checksum
         run: md5sum dist/*.zip | tee dist/addon.md5
+
       - uses: actions/upload-artifact@v4
         with:
           name: simple-favourites-addon
