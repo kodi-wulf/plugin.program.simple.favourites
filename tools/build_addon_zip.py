@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Build a Kodi-compatible addon ZIP from the repository root.
 
+The user-facing release label is v0.1.33.7a; Kodi's manifest uses
+0.1.33~alpha7 because Kodi expects x.y.z with an optional prerelease suffix.
+
 Usage: python tools/build_addon_zip.py
-Output: dist/plugin.program.simple.favourites-0.1.33.7a.zip
+Output: dist/plugin.program.simple.favourites-0.1.33~alpha7.zip
 """
 from pathlib import Path
 import re
@@ -24,9 +27,7 @@ def main():
     files = []
     ignored = {".git", ".github", "dist", "__pycache__"}
     for path in ROOT.rglob("*"):
-        if not path.is_file():
-            continue
-        if any(part in ignored for part in path.parts):
+        if not path.is_file() or any(part in ignored for part in path.parts):
             continue
         files.append(path)
 
