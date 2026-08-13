@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.simple.favourites" name="Simple Favourites" version="0.1.33.7a" provider-name="N-E-O-W-U-L-F">
+<addon id="plugin.program.simple.favourites" name="Simple Favourites" version="0.1.33~alpha7" provider-name="N-E-O-W-U-L-F">
   <requires>
     <import addon="xbmc.python" version="3.0.1" />
   </requires>
