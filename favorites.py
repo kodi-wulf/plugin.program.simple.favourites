@@ -15,15 +15,18 @@ import xbmcvfs
 
 ADDON_ID = "plugin.program.simple.favourites"
 VERSION = "0.1.33~alpha7"
+FAVORITE_PROPERTY = "SimpleFavourites.IsFavorite"
+FAVORITE_ID_PROPERTY = "SimpleFavourites.FavoriteId"
 ADDON = xbmcaddon.Addon(ADDON_ID)
 HANDLE = int(sys.argv[1]) if len(sys.argv) > 1 else -1
 ROOT = "special://profile/addon_data/%s/" % ADDON_ID
 STORE = ROOT + "favorites.json"
+
 CATEGORIES = (
     ("movies", "Filme", "special://home/addons/%s/resources/img/movies.png" % ADDON_ID),
     ("series", "Serien", "special://home/addons/%s/resources/img/popular.png" % ADDON_ID),
     ("music", "Musik", "special://home/addons/%s/resources/img/music.png" % ADDON_ID),
-    ("tvserver", "TV-Server", "special://home/addons/%s/resources/img/tv.png" % ADDON_ID),
+    ("tvserver", "TV-Sender", "special://home/addons/%s/resources/img/tv.png" % ADDON_ID),
 )
 
 
@@ -99,13 +102,13 @@ def _category_for_item(item):
     dbtype = (item.get("dbtype") or "").lower()
     mimetype = (item.get("mimetype") or "").lower()
     path = (item.get("target") or "").lower()
-    if dbtype in ("movie", "video") or "/movie" in path:
+    if dbtype == "movie" or "/movie" in path:
         return "movies"
     if dbtype in ("tvshow", "season", "episode") or "tvshow" in path:
         return "series"
     if dbtype in ("song", "album", "artist") or mimetype.startswith("audio/"):
         return "music"
-    if path.startswith("pvr://") or (dbtype in ("channel", "recording") and "pvr" in path):
+    if path.startswith("pvr://") or dbtype in ("channel", "recording"):
         return "tvserver"
     return None
 
@@ -117,50 +120,137 @@ def _selected_target(item):
     return target
 
 
+def _find_favorite(data, target):
+    """Stable recognition: target URL is the identity of a shortcut."""
+    if not target:
+        return None
+    for item in data["items"]:
+        if item.get("target") == target:
+            return item
+    return None
+
+
+def is_favorite(target):
+    return _find_favorite(_load(), target) is not None
+
+
+def _all_folder_choices(data, exclude=None):
+    """Return every editable directory, with its full logical path."""
+    folders = data["folders"]
+    children = {}
+    for folder in folders.values():
+        children.setdefault(folder.get("parent"), []).append(folder)
+
+    result = []
+
+    def walk(parent, prefix):
+        for folder in sorted(children.get(parent, []), key=lambda x: x.get("name", "").casefold()):
+            if folder["id"] != exclude:
+                path = "%s / %s" % (prefix, folder["name"]) if prefix else folder["name"]
+                result.append((folder["id"], path))
+                walk(folder["id"], path)
+
+    walk(None, "")
+    return result
+
+
+def _choose_destination(data, suggested=None):
+    """After promotion, always ask where the shortcut should be stored."""
+    choices = _all_folder_choices(data)
+    if not choices:
+        return None
+    labels = [label for _, label in choices]
+    preselect = next((n for n, (folder_id, _) in enumerate(choices) if folder_id == suggested), 0)
+    selected = xbmcgui.Dialog().select("Favorit ablegen in", labels, preselect=preselect)
+    if selected < 0:
+        return None
+    return choices[selected][0]
+
+
 def promote(item=None):
-    item = item or sys.listitem
+    item = item or getattr(sys, "listitem", None)
+    if item is None:
+        return
     target = _selected_target(item)
     if not target:
         xbmcgui.Dialog().notification("Simple Favourites", "Kein gültiges Ziel gefunden", xbmcgui.NOTIFICATION_WARNING)
         return
+
     data = _load()
+    existing = _find_favorite(data, target)
+    if existing:
+        # No duplicate and, importantly, no silent update anymore.
+        xbmcgui.Dialog().notification("Simple Favourites", "Bereits als Favorit gespeichert", xbmcgui.NOTIFICATION_INFO)
+        return
+
     suggested = _category_for_item({
         "dbtype": item.getProperty("dbtype"),
         "mimetype": item.getProperty("mimetype"),
         "target": target,
     })
-    choices = [(key, name) for key, name, _ in CATEGORIES]
-    labels = [name for _, name in choices]
-    default = next((n for n, (key, _) in enumerate(choices) if key == suggested), 0)
-    selected = xbmcgui.Dialog().select("Favoriten-Kategorie", labels, preselect=default)
-    if selected < 0:
+    folder_id = _choose_destination(data, suggested)
+    if not folder_id:
         return
-    folder_id = choices[selected][0]
+
     title = item.getLabel() or "Favorit"
-    existing = next((i for i in data["items"] if i.get("target") == target), None)
-    if existing:
-        existing.update({"folder": folder_id, "label": title, "thumbnail": item.getArt("thumb") or existing.get("thumbnail", ""),
-                         "fanart": item.getArt("fanart") or existing.get("fanart", ""), "is_folder": bool(item.isFolder())})
-        message = "Favorit aktualisiert"
-    else:
-        data["items"].append({"id": _new_id("fav"), "folder": folder_id, "label": title, "target": target,
-                              "thumbnail": item.getArt("thumb") or item.getArt("poster") or "",
-                              "fanart": item.getArt("fanart") or "", "is_folder": bool(item.isFolder()),
-                              "dbtype": item.getProperty("dbtype") or "", "mimetype": item.getProperty("mimetype") or "",
-                              "created": int(time.time())})
-        message = "%s zu Favoriten hinzugefügt" % title
+    favorite_id = _new_id("fav")
+    data["items"].append({
+        "id": favorite_id,
+        "folder": folder_id,
+        "label": title,
+        "target": target,
+        "thumbnail": item.getArt("thumb") or item.getArt("poster") or "",
+        "fanart": item.getArt("fanart") or "",
+        "is_folder": bool(item.isFolder()),
+        "dbtype": item.getProperty("dbtype") or "",
+        "mimetype": item.getProperty("mimetype") or "",
+        "created": int(time.time()),
+    })
     _save(data)
-    xbmcgui.Dialog().notification("Simple Favourites", message)
+    xbmcgui.Dialog().notification("Simple Favourites", "%s zu Favoriten hinzugefügt" % title)
     xbmc.executebuiltin("Container.Refresh")
 
 
-def _add_item(label, target, thumb="", fanart="", is_folder=False, context=None):
+def demote(item=None):
+    """Remove the exact source target from Simple Favourites."""
+    item = item or getattr(sys, "listitem", None)
+    if item is None:
+        return
+    target = _selected_target(item)
+    data = _load()
+    existing = _find_favorite(data, target)
+    if not existing:
+        xbmcgui.Dialog().notification("Simple Favourites", "Kein Favorit für dieses Element gefunden", xbmcgui.NOTIFICATION_INFO)
+        return
+    title = existing.get("label", item.getLabel() or "Favorit")
+    if not xbmcgui.Dialog().yesno("Favorit entfernen", "Soll '%s' aus den Favoriten entfernt werden?" % title):
+        return
+    data["items"] = [i for i in data["items"] if i.get("id") != existing.get("id")]
+    _save(data)
+    xbmcgui.Dialog().notification("Simple Favourites", "%s aus Favoriten entfernt" % title)
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def annotate_item(item, favorite=None):
+    """Set an explicit marker on items rendered by Simple Favourites."""
+    if favorite is None:
+        favorite = _find_favorite(_load(), _selected_target(item))
+    if favorite:
+        item.setProperty(FAVORITE_PROPERTY, "true")
+        item.setProperty(FAVORITE_ID_PROPERTY, favorite.get("id", ""))
+    else:
+        item.setProperty(FAVORITE_PROPERTY, "false")
+        item.clearProperty(FAVORITE_ID_PROPERTY)
+
+
+def _add_item(label, target, thumb="", fanart="", is_folder=False, context=None, favorite=None):
     li = xbmcgui.ListItem(label=label)
     if thumb:
         li.setArt({"thumb": thumb, "icon": thumb})
     if fanart:
         li.setArt({"fanart": fanart})
     li.setProperty("IsPlayable", "false" if is_folder else "true")
+    annotate_item(li, favorite)
     if context:
         li.addContextMenuItems(context, replaceItems=False)
     xbmcplugin.addDirectoryItem(HANDLE, target, li, is_folder)
@@ -216,9 +306,8 @@ def folder(folder_id):
         _add_item(child["name"], _plugin_url("folder", folder=child["id"]), child.get("thumbnail", ""),
                   child.get("fanart", ""), True, _folder_context(child))
     for item in sorted(_items_for(data, folder_id), key=lambda x: x.get("label", "").casefold()):
-        # Important: target is the original plugin:// or pvr:// target, untouched.
         _add_item(item.get("label", "Favorit"), item.get("target", ""), item.get("thumbnail", ""),
-                  item.get("fanart", ""), bool(item.get("is_folder")), _item_context(item))
+                  item.get("fanart", ""), bool(item.get("is_folder")), _item_context(item), item)
     _add_item("+ Unterordner erstellen", _plugin_url("new_folder", parent=folder_id),
               "special://home/addons/%s/resources/img/folder.png" % ADDON_ID)
     xbmcplugin.setContent(HANDLE, "files")
@@ -298,10 +387,10 @@ def move_item(item_id):
     item = next((i for i in data["items"] if i.get("id") == item_id), None)
     if not item:
         return
-    folders = sorted(data["folders"].values(), key=lambda f: f.get("name", "").casefold())
-    idx = xbmcgui.Dialog().select("Favorit verschieben", [f.get("name", "") for f in folders])
+    folders = _all_folder_choices(data)
+    idx = xbmcgui.Dialog().select("Favorit verschieben", [f[1] for f in folders])
     if idx >= 0:
-        item["folder"] = folders[idx]["id"]
+        item["folder"] = folders[idx][0]
         _save(data)
         _refresh()
 
