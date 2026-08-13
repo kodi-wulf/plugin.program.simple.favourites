@@ -1,48 +1,12 @@
-version 0.1.13
-- folder passwords
+v0.1.33.7a
+- Reworked Simple Favourites around Kodi Python 3 APIs.
+- Added four fixed top-level categories: Filme, Serien, Musik, TV-Server.
+- Added Kodi context-menu action: Promote to Favorite.
+- Stores the original target URL unchanged, including plugin:// and PVR parameters.
+- Added persistent JSON data model with schema versioning.
+- Added editable nested folders, rename/delete, move, rename and remove favourite actions.
+- Duplicate promotion updates the existing shortcut instead of creating a duplicate.
+- Removed obsolete xbmcswift2/requests/RPC runtime dependencies.
+- Added deterministic addon ZIP build script.
 
-version 0.1.12
-- maintenance tool (url must be a zip containing folders tree)
-- Folder colour option
-- Folder name formatting (colour choice overrides formatting)
-
-version 0.1.9-11
-- should respect the media type better now (videos, music, programs, pictures)
-- returns to Simple Favourites after playing link: ActiveWindow(media,url,return)
-- Fanart
-- Setting to turn off Edit commands in context menu
-
-version 0.1.8
-- Move to Folder
-
-version 0.1.6-7
-- Settings \ Appearance \ Show Add Button
--   if off look for Add Menu in Context Menu
-
-version 0.1.5
-- Settings \ Appearance \ Sort
-- Move if Sort is off
-
-version 0.1.0-4
-- BIG CHANGES! EVERYTHING MUST BE RE-ADDED! SORRY!
-- New Folder Structure in addon_data\folders
-- No Context Menu
-
-version 0.0.5-10
-- Import/Export in Add if enabled in Settings\Advanced
-- import/export file is userdata\addon_data\plugin.program.simple.folders\favourites.json
-
-version 0.0.4
-- path fix (hopefully)
-- Files and Browse are in Settings \ Advanced (they may not work on some devices)
-
-version 0.0.3
-- Files (use protocol eg c:\ http:// smb:// nfs:// special://)
-- Note: files will be filtered depending on where addon was started (Video,Music,Pictures etc)
-
-version 0.0.2
-- user icons (make a folder called userdata\addon_data\plugin.program.simple.folders\icons)
-- (current icons needed are: audio.png favourites.png music.png settings.png tv.png video.png)
-
-version 0.0.1
-- first release
+Kodi manifest version: 0.1.33~alpha7 (Kodi-compatible representation of v0.1.33.7a).
