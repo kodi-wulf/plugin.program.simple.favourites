@@ -10,20 +10,24 @@
 
   <extension point="kodi.context.item">
     <menu id="kodi.core.main">
-      <item library="contextitem.py">
+      <item library="promote.py">
         <label>Promote to Favorite</label>
+        <visible>!String.StartsWith(ListItem.Path,plugin://plugin.program.simple.favourites)</visible>
+      </item>
+      <item library="demote.py">
+        <label>Demote from Favorite</label>
         <visible>!String.StartsWith(ListItem.Path,plugin://plugin.program.simple.favourites)</visible>
       </item>
     </menu>
   </extension>
 
   <extension point="xbmc.addon.metadata">
-    <summary lang="en_GB">Simple Favourites with editable media categories and context-menu promotion.</summary>
-    <description lang="en_GB">Organise shortcuts into Movies, Series, Music and TV-Server. Promote a selected Kodi item directly from the context menu while preserving its original target URL.</description>
+    <summary lang="en_GB">Simple Favourites with editable media categories and native promotion/demotion.</summary>
+    <description lang="en_GB">Four fixed media areas: Movies, Series, Music and TV-Sender. Native context actions promote or demote an exact Kodi item by its original target URL.</description>
     <platform>all</platform>
     <license>GPL-2.0-or-later</license>
     <source>https://github.com/kodi-wulf/plugin.program.simple.favourites</source>
-    <news>v0.1.33.7a - Four media categories, persistent shortcuts, editable folders, context-menu promotion and safer Kodi Python 3 implementation.</news>
+    <news>v0.1.33.7a - Four media categories, arbitrary editable destination folders, exact favorite identity and native Promote/Demote context actions.</news>
     <assets>
       <icon>icon.png</icon>
       <fanart>background.png</fanart>
