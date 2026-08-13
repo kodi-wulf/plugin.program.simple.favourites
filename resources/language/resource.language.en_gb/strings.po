@@ -1,0 +1,19 @@
+msgctxt "#30000"
+msgid "Promote to Favorite"
+msgstr "Promote to Favorite"
+
+msgctxt "#30001"
+msgid "Movies"
+msgstr "Movies"
+
+msgctxt "#30002"
+msgid "Series"
+msgstr "Series"
+
+msgctxt "#30003"
+msgid "Music"
+msgstr "Music"
+
+msgctxt "#30004"
+msgid "TV-Server"
+msgstr "TV-Server"
