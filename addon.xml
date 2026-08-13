@@ -1,20 +1,32 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.program.simple.favourites"
-version="0.1.13"
-name="Simple Favourites"
-provider-name="primaeval">
-<requires>
-  <import addon="xbmc.python" version="2.20.0"/>
-  <import addon="script.module.xbmcswift2" version="2.4.0"/>
-  <import addon="script.module.requests" version="2.9.1" />
-</requires>
-<extension point="xbmc.python.pluginsource" library="main.py">
-  <provides>executable</provides>
-</extension>
-<extension point="xbmc.addon.metadata">
-  <summary lang="en">Simple Favourites</summary>
-  <description lang="en"></description>
-  <disclaimer lang="en">.</disclaimer>
-</extension>
-</addon>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.program.simple.favourites" name="Simple Favourites" version="0.1.33.7a" provider-name="N-E-O-W-U-L-F">
+  <requires>
+    <import addon="xbmc.python" version="3.0.1" />
+  </requires>
 
+  <extension point="xbmc.python.pluginsource" library="favorites.py">
+    <provides>executable</provides>
+  </extension>
+
+  <extension point="kodi.context.item">
+    <menu id="kodi.core.main">
+      <item library="contextitem.py">
+        <label>Promote to Favorite</label>
+        <visible>!String.StartsWith(ListItem.Path,plugin://plugin.program.simple.favourites)</visible>
+      </item>
+    </menu>
+  </extension>
+
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Simple Favourites with editable media categories and context-menu promotion.</summary>
+    <description lang="en_GB">Organise shortcuts into Movies, Series, Music and TV-Server. Promote a selected Kodi item directly from the context menu while preserving its original target URL.</description>
+    <platform>all</platform>
+    <license>GPL-2.0-or-later</license>
+    <source>https://github.com/kodi-wulf/plugin.program.simple.favourites</source>
+    <news>v0.1.33.7a - Four media categories, persistent shortcuts, editable folders, context-menu promotion and safer Kodi Python 3 implementation.</news>
+    <assets>
+      <icon>icon.png</icon>
+      <fanart>background.png</fanart>
+    </assets>
+  </extension>
+</addon>
