@@ -1,0 +1,37 @@
+name: Build Kodi addon
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Build addon ZIP
+        run: python tools/build_addon_zip.py
+      - name: Validate ZIP layout
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          zips = list(Path('dist').glob('plugin.program.simple.favourites-*.zip'))
+          assert len(zips) == 1, zips
+          with zipfile.ZipFile(zips[0]) as z:
+              names = set(z.namelist())
+              assert 'plugin.program.simple.favourites/addon.xml' in names
+              assert 'plugin.program.simple.favourites/favorites.py' in names
+              assert 'plugin.program.simple.favourites/contextitem.py' in names
+          print(zips[0])
+          PY
+      - name: Create MD5
+        run: md5sum dist/*.zip | tee dist/addon.md5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simple-favourites-addon
+          path: dist/*
