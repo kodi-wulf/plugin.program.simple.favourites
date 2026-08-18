@@ -1,0 +1,33 @@
+# Python bytecode, caches, and environments
+__pycache__/
+*.py[codz]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Test and packaging output
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Logs, local settings, and temporary files
+*.log
+.env
+.env.*
+!.env.example
+*.tmp
+*.bak
+*.orig
+*~
+
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
